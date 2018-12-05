@@ -40,6 +40,26 @@
 
 啟用或停用查詢計劃程序使用 nested-loop join 計劃。完全抑制 nested-loop join 是不可能的，但如果有其他可用方法，則關閉此變數會阻止規劃器使用它。預設為開啓。
 
+#### `enable_parallel_append` \(`boolean`\)
+
+Enables or disables the query planner's use of parallel-aware append plan types. The default is on.
+
+#### `enable_parallel_hash` \(`boolean`\)
+
+Enables or disables the query planner's use of hash-join plan types with parallel hash. Has no effect if hash-join plans are not also enabled. The default is on.
+
+#### `enable_partition_pruning` \(`boolean`\)
+
+Enables or disables the query planner's ability to eliminate a partitioned table's partitions from query plans. This also controls the planner's ability to generate query plans which allow the query executor to remove \(`ignore`\( partitions during query execution. The default is on. See Section 5.10.4 for details.
+
+#### `enable_partitionwise_join` \(`boolean`\)
+
+Enables or disables the query planner's use of partitionwise join, which allows a join between partitioned tables to be performed by joining the matching partitions. Partitionwise join currently applies only when the join conditions include all the partition keys, which must be of the same data type and have exactly matching sets of child partitions. Because partitionwise join planning can use significantly more CPU time and memory during planning, the default is off.
+
+#### `enable_partitionwise_aggregate` \(`boolean`\)
+
+Enables or disables the query planner's use of partitionwise grouping or aggregation, which allows grouping or aggregation on a partitioned tables performed separately for each partition. If the GROUP BY clause does not include the partition keys, only partial aggregation can be performed on a per-partition basis, and finalization must be performed later. Because partitionwise grouping or aggregation can use significantly more CPU time and memory during planning, the default is off.
+
 #### `enable_seqscan` \(`boolean`\)
 
 啟用或停用查詢計劃程序使用循序掃描計劃類型。完全抑制循序掃描是不可能的，但如果有其他方法可用，則關閉此變數會阻止計劃程序使用。預設為開啓。
@@ -109,6 +129,18 @@ Sets the minimum amount of index data that must be scanned in order for a parall
 #### `effective_cache_size` \(`integer`\)
 
 Sets the planner's assumption about the effective size of the disk cache that is available to a single query. This is factored into estimates of the cost of using an index; a higher value makes it more likely index scans will be used, a lower value makes it more likely sequential scans will be used. When setting this parameter you should consider both PostgreSQL's shared buffers and the portion of the kernel's disk cache that will be used for PostgreSQL data files. Also, take into account the expected number of concurrent queries on different tables, since they will have to share the available space. This parameter has no effect on the size of shared memory allocated by PostgreSQL, nor does it reserve kernel disk cache; it is used only for estimation purposes. The system also does not assume data remains in the disk cache between queries. The default is 4 gigabytes \(`4GB`\).
+
+#### jit_above_cost \(`floating point`\)
+
+Sets the query cost above which JIT compilation is activated, if enabled \(`see Chapter 32`\). Performing JIT costs planning time but can accelerate query execution. Setting this to -1 disables JIT compilation. The default is 100000.
+
+#### jit_inline_above_cost \(`floating point`\)
+
+Sets the query cost above which JIT compilation attempts to inline functions and operators. Inlining adds planning time, but can improve execution speed. It is not meaningful to set this to less than jit_above_cost. Setting this to -1 disables inlining. The default is 500000.
+
+#### jit_optimize_above_cost \(`floating point`\)
+
+Sets the query cost above which JIT compilation applies expensive optimizations. Such optimization adds planning time, but can improve execution speed. It is not meaningful to set this to less than jit_above_cost, and it is unlikely to be beneficial to set it to more than jit_inline_above_cost. Setting this to -1 disables expensive optimizations. The default is 500000.
 
 ## 19.7.3. Genetic Query Optimizer
 
@@ -180,6 +212,11 @@ The planner will merge sub-queries into upper queries if the resulting `FROM` li
 
 Setting this value to [geqo\_threshold](https://www.postgresql.org/docs/10/static/runtime-config-query.html#GUC-GEQO-THRESHOLD) or more may trigger use of the GEQO planner, resulting in non-optimal plans. See [Section 19.7.3](https://www.postgresql.org/docs/10/static/runtime-config-query.html#RUNTIME-CONFIG-QUERY-GEQO).
 
+#### jit \(`boolean`\)
+
+Determines whether JIT compilation may be used by PostgreSQL, if available \(`see Chapter 32`\). The default is off.
+
+
 #### `join_collapse_limit` \(`integer`\)
 
 The planner will rewrite explicit `JOIN` constructs \(except `FULL JOIN`s\) into lists of `FROM` items whenever a list of no more than this many items would result. Smaller values reduce planning time but might yield inferior query plans.
@@ -187,6 +224,10 @@ The planner will rewrite explicit `JOIN` constructs \(except `FULL JOIN`s\) into
 By default, this variable is set the same as `from_collapse_limit`, which is appropriate for most uses. Setting it to 1 prevents any reordering of explicit `JOIN`s. Thus, the explicit join order specified in the query will be the actual order in which the relations are joined. Because the query planner does not always choose the optimal join order, advanced users can elect to temporarily set this variable to 1, and then specify the join order they desire explicitly. For more information see [Section 14.3](https://www.postgresql.org/docs/10/static/explicit-joins.html).
 
 Setting this value to [geqo\_threshold](https://www.postgresql.org/docs/10/static/runtime-config-query.html#GUC-GEQO-THRESHOLD) or more may trigger use of the GEQO planner, resulting in non-optimal plans. See [Section 19.7.3](https://www.postgresql.org/docs/10/static/runtime-config-query.html#RUNTIME-CONFIG-QUERY-GEQO).
+
+#### parallel_leader_participation \(`boolean`\)
+
+Allows the leader process to execute the query plan under Gather and Gather Merge nodes instead of waiting for worker processes. The default is on. Setting this value to off reduces the likelihood that workers will become blocked because the leader is not reading tuples fast enough, but requires the leader process to wait for worker processes to start up before the first tuples can be produced. The degree to which the leader can help or hinder performance depends on the plan type, number of workers and query duration.
 
 #### `force_parallel_mode` \(`enum`\)
 
